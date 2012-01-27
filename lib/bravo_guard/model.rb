@@ -44,9 +44,10 @@ module BravoGuard::Model::InstanceMethods
   # nodoc
   def allows?(actor, *permissions)
     begin
-      permission = permissions.join('_')
-      method_name = [:allows, permission_name(permission)].join('_') + '?'
       self.actor = actor
+      permission = permission_name(permissions.join('_'))
+      method_name = [:allows, permission].join('_') + '?'
+      check_anon_permission! permission
       send method_name
     rescue BravoGuard::PermissionDenied
       return false
@@ -57,6 +58,22 @@ module BravoGuard::Model::InstanceMethods
     end
   end
 
+
+
+  # anything in here will not be auto-rejected for anons, instead, the permission
+  # method will be called as usual so you can still check object state etc
+  def anon_permissions
+    []
+  end
+
+
+  # nodoc
+  def check_anon_permission!(permission)
+    is_anon = actor.nil? || (actor.respond_to?(:anon) && actor.anon?)
+    return if anon_permissions.include?(permission.intern)
+    return unless is_anon
+    no!
+  end
 
 
   # shorthand for 'return false'. allows?() will catch this and return false
