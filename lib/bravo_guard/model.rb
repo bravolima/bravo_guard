@@ -45,9 +45,10 @@ module BravoGuard::Model::ObjectMethods
   # nodoc
   def allows?(actor, *permissions)
     begin
-      permission = permissions.join('_')
-      method_name = [:allows, permission_name(permission)].join('_') + '?'
+      permission = permission_name(permissions.join('_'))
+      method_name = [:allows, permission].join('_') + '?'
       self.actor = actor
+      check_anon_permissions!(permission)
       send method_name
     rescue BravoGuard::PermissionDenied
       return false
@@ -58,6 +59,19 @@ module BravoGuard::Model::ObjectMethods
     end
   end
 
+
+
+  # nodoc
+  def anon_permissions
+    []
+  end
+
+
+  # auto-reject anons
+  def check_anon_permissions!(permission)
+    return unless actor.nil?
+    no! unless anon_permissions.include?(permission)
+  end
 
 
   # shorthand for 'return false'. allows?() will catch this and return false
